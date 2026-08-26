@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18, 20, 22]
     steps:
@@ -28,3 +29,4 @@ jobs:
           node bin/jagx.js --help
           node bin/jagx.js version
           node bin/jagx.js modes | head -3
+          node bin/jagx.js features | head -5
