@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Syntax check
+        run: |
+          for f in src/*.js bin/jagx.js; do node --check "$f"; done
+      - name: Unit tests
+        run: npm test
+      - name: Local bench
+        run: npm run bench
+      - name: CLI smoke
+        run: |
+          node bin/jagx.js --help
+          node bin/jagx.js version
+          node bin/jagx.js modes | head -3
