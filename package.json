@@ -1,0 +1,46 @@
+{
+  "name": "jagx-cli",
+  "version": "3.1.0",
+  "description": "Hands-off multi-agent GROUP CLI — coding first, optional email/X/Supabase — JagX & JRILICENSE",
+  "type": "module",
+  "bin": {
+    "jagx": "./bin/jagx.js"
+  },
+  "main": "src/cli.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "bench": "node scripts/bench-local.mjs",
+    "bench:provider": "node scripts/bench-provider.mjs",
+    "start": "node bin/jagx.js",
+    "prepublishOnly": "npm test && npm run bench"
+  },
+  "files": [
+    "bin",
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    ".env.example",
+    "PUBLISH.md"
+  ],
+  "keywords": [
+    "jagx",
+    "ai",
+    "cli",
+    "coding-agent",
+    "multi-agent",
+    "openrouter",
+    "nvidia",
+    "groq"
+  ],
+  "author": "JagX & JRILICENSE",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JagX-JRILICENSE/jagx-cli.git"
+  }
+}
