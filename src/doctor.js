@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { getProvider, getProviderKey, getApiKey, usingDemoKey, getBaseUrl, loadConfig } from "./config.js";
+import { getProvider, getProviderKey, usingDemoKey, getBaseUrl, loadConfig } from "./config.js";
 import { listPlugins } from "./plugins.js";
 
 const GREEN = "\x1b[32m";
@@ -35,12 +35,10 @@ function hasBinary(name) {
 export async function runDoctor() {
   console.log(`${CYAN}jagx doctor${RESET} — environment check\n`);
 
-  // Node
   const nodeMajor = Number(process.versions.node.split(".")[0]);
   if (nodeMajor >= 18) ok(`Node.js ${process.versions.node}`);
   else bad(`Node.js ${process.versions.node} (need >= 18)`);
 
-  // Provider
   const provider = getProvider();
   console.log(`\n${DIM}Provider${RESET}`);
   ok(`Active provider: ${provider}`);
@@ -58,7 +56,13 @@ export async function runDoctor() {
     }
   }
 
-  // Config dir
+  console.log(`\n${DIM}Free / cheap providers${RESET}`);
+  for (const p of ["groq", "openrouter", "nvidia"]) {
+    if (getProviderKey(p)) ok(`${p} key present`);
+    else console.log(`  ${DIM}· ${p} — jagx config --provider ${p} --key YOUR_KEY${RESET}`);
+  }
+  console.log(`  ${DIM}After connect: jagx models <provider>${RESET}`);
+
   console.log(`\n${DIM}Config${RESET}`);
   const cfgDir = path.join(os.homedir(), ".jagx");
   if (fs.existsSync(cfgDir)) ok(`Config dir: ${cfgDir}`);
@@ -66,7 +70,21 @@ export async function runDoctor() {
   const cfg = loadConfig();
   if (cfg.theme) ok(`Theme: ${cfg.theme}`);
 
-  // Tools
+  console.log(`\n${DIM}Modules${RESET}`);
+  try {
+    const g = await import("./group.js");
+    if (typeof g.runGroupSession === "function") ok("group multi-agent module loaded");
+    else warn("group module missing runGroupSession");
+  } catch (e) {
+    bad(`group module: ${e.message}`);
+  }
+  try {
+    const c = await import("./code.js");
+    if (typeof c.runCodeAgent === "function") ok("code agent module loaded");
+  } catch (e) {
+    bad(`code module: ${e.message}`);
+  }
+
   console.log(`\n${DIM}System tools${RESET}`);
   if (hasBinary("rg")) ok("ripgrep (rg) — fast search_code");
   else if (hasBinary("grep")) warn("ripgrep not found — falling back to grep / JS search");
@@ -80,14 +98,12 @@ export async function runDoctor() {
     warn("playwright not installed — preview_url uses HTTP fetch (optional: npm i -D playwright)");
   }
 
-  // Plugins
   console.log(`\n${DIM}Plugins${RESET}`);
   const plugins = listPlugins();
   const names = Object.keys(plugins);
   if (names.length) names.forEach((n) => ok(`Plugin: ${n}`));
   else console.log(`  ${DIM}(none configured)${RESET}`);
 
-  // Network smoke (JagX only, short timeout)
   if (provider === "jagx") {
     console.log(`\n${DIM}Backend${RESET}`);
     try {
@@ -102,14 +118,17 @@ export async function runDoctor() {
     }
   }
 
-  // Agent recommendation
   console.log(`\n${DIM}Recommendation${RESET}`);
   if (provider === "jagx") {
     console.log(
-      `  For coding agent reliability: ${CYAN}jagx config --provider anthropic --key sk-ant-...${RESET}`,
+      `  Coding reliability: ${CYAN}jagx config --provider anthropic --key sk-ant-...${RESET}`,
+    );
+    console.log(
+      `  Free tier try:     ${CYAN}jagx config --provider groq --key gsk_...${RESET}`,
     );
   } else {
-    console.log(`  ${GREEN}Provider looks good for jagx code.${RESET}`);
+    console.log(`  ${GREEN}Provider looks good for jagx code / group.${RESET}`);
   }
+  console.log(`  Hands-off build:  ${CYAN}jagx group "your goal"${RESET}`);
   console.log("");
 }
