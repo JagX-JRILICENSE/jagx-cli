@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.1
+
+- **Specialist starters**: backend/files write `src/server.js` + `package.json`; frontend/design write `public/index.html`; shell writes `scripts/dev.sh` (never overwrite existing)
+- **Doctor**: free-model tips (Groq / OpenRouter / NVIDIA), group + code module load checks
+- **package.json**: homepage, bugs URL, richer keywords; version **3.1.1**
+- Group tests: dry-run session + scaffold folder integration
+- PUBLISH.md: prefer `git clone` from GitHub (tree complete)
+
 ## 3.1.0
 
 - **100 features** (`jagx features`) + honest **`jagx roadmap`**
