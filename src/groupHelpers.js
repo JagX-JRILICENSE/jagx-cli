@@ -1,6 +1,9 @@
 /**
  * Multi-agent GROUP helpers — roster, scaffold-first, kickoff, plan.
  */
+import fs from "node:fs";
+import path from "node:path";
+
 export const DIM = "\x1b[2m";
 export const CYAN = "\x1b[36m";
 export const GREEN = "\x1b[32m";
@@ -44,7 +47,18 @@ export function printGroupHeader(groupName, members, task, handsOff) {
 }
 
 export function saveGroupLog(workdir, groupName, transcript) {
-  return null;
+  try {
+    const dir = path.join(workdir || process.cwd(), ".jagx", "groups");
+    fs.mkdirSync(dir, { recursive: true });
+    const safe = String(groupName || "group").replace(/\W+/g, "_");
+    const file = path.join(dir, `${safe}-${Date.now()}.md`);
+    const body = Array.isArray(transcript) ? transcript.join("\n") : String(transcript || "");
+    fs.writeFileSync(file, body, "utf8");
+    console.log(`${DIM}transcript → ${file}${RESET}`);
+    return file;
+  } catch {
+    return null;
+  }
 }
 
 export function ensureScaffoldFirst(assignments) {
@@ -66,9 +80,12 @@ export function ensureScaffoldFirst(assignments) {
     };
     list = [sc, ...list];
   }
+  // Always put scaffold first in the list
+  list = [sc, ...list.filter((a) => a !== sc && a.role !== "scaffold")];
   return list.map((a) => {
     if (a.role === "scaffold") return a;
     if (!a.dependsOn.length) return { ...a, dependsOn: [sc.id] };
+    if (!a.dependsOn.includes(sc.id)) return { ...a, dependsOn: [sc.id, ...a.dependsOn] };
     return a;
   });
 }
@@ -76,6 +93,11 @@ export function ensureScaffoldFirst(assignments) {
 export async function kickoffMeeting(task, members, sharedContext, transcript) {
   say("lead", `Opening the room. Goal: ${task}`);
   if (transcript) transcript.push(`**Lead:** Opening the room. Goal: ${task}`);
+  const workers = (members || []).filter((m) => m !== "lead");
+  for (const role of workers) {
+    say(role, `${role} standing by for: ${String(task).slice(0, 80)}`);
+    if (transcript) transcript.push(`**${role}:** standing by`);
+  }
 }
 
 export async function planAssignments(task, members, sharedContext, transcript) {
@@ -92,5 +114,18 @@ export async function planAssignments(task, members, sharedContext, transcript) 
   ]);
   const summary = "Scaffold first, then specialists, then review.";
   say("lead", summary);
+  if (transcript) {
+    transcript.push(`**Lead:** ${summary}`);
+    transcript.push(
+      "### Work board\n" +
+        assignments.map((a) => `- **${a.id}** [${a.role}] ${a.task}`).join("\n"),
+    );
+  }
+  console.log("  Work board");
+  for (const a of assignments) {
+    const deps = a.dependsOn?.length ? ` (after ${a.dependsOn.join(", ")})` : "";
+    console.log(`  ${a.id}  ${a.role} → ${a.task}${deps}`);
+  }
+  console.log("");
   return { summary, assignments };
 }
