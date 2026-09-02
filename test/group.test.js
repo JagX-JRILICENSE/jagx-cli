@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { TEAM_ROLES } from "../src/team.js";
-import { ensureScaffoldFirst, DEFAULT_MEMBERS } from "../src/group.js";
+import { ensureScaffoldFirst, DEFAULT_MEMBERS, runGroupSession } from "../src/group.js";
 import { FEATURES } from "../src/features.js";
 import { mkdirTool, globTool, moveFileTool, deleteFileTool, createWriteLock } from "../src/tools.js";
 import fs from "node:fs";
@@ -28,6 +28,35 @@ describe("group module", () => {
     assert.equal(out[0].role, "scaffold");
     const be = out.find((a) => a.role === "backend");
     assert.ok(be.dependsOn.includes(out[0].id));
+  });
+  it("runGroupSession dry-run completes", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jagx-g-"));
+    const result = await runGroupSession("demo express api", {
+      workdir: dir,
+      dryRun: true,
+      skipKickoff: true,
+      auto: true,
+      approval: "full-auto",
+    });
+    assert.equal(result.ok, true);
+    assert.ok(Array.isArray(result.assignments));
+    assert.equal(result.assignments[0].role, "scaffold");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  it("scaffold creates folders when not dry-run", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jagx-sc-"));
+    const result = await runGroupSession("build express api with hello page", {
+      workdir: dir,
+      dryRun: false,
+      skipKickoff: true,
+      auto: true,
+      approval: "full-auto",
+    });
+    assert.equal(result.ok, true);
+    assert.equal(fs.existsSync(path.join(dir, "src")), true);
+    assert.equal(fs.existsSync(path.join(dir, "test")), true);
+    assert.equal(fs.existsSync(path.join(dir, ".jagx")), true);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });
 
