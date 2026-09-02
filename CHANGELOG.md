@@ -7,6 +7,10 @@
 - Email (Resend), Supabase REST, X post/reply, HTTPS social webhook — **opt-in plugins**, confirm unless `--allow-social`
 - Architecture **blueprints** (`jagx blueprint`, Architect role, mermaid)
 - Coding remains the main job; social never runs unless you connect keys and ask
+- **Group modules on GitHub main**: `groupHelpers` / `groupWorker` / `group` session + chat
+- **Scaffold creates real folders** (`src`, `test`, `public`, `.jagx`, task-aware `src/api` …)
+- **Review** checks board + basic filesystem notes
+- **Coding agent** session under `.jagx/session.json` + executeTool-ready entry
 
 ## 3.0.0
 
