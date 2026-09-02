@@ -1,22 +1,30 @@
-# Finish upload (code.js + group.js)
+# Upload status (updated)
 
-These two files are large (~18–26 KB). Upload them from Termux with the publish zip:
+## Now on main (JagX-JRILICENSE/jagx-cli)
+
+- `src/groupHelpers.js` — roster, scaffold-first, kickoff, plan
+- `src/groupWorker.js` — runWorker + reviewAndRework
+- `src/group.js` — full group session + interactive chat
+- `src/code.js` — session helpers + runCodeAgent (executeTool-ready)
+- `src/executeTool.js`, cliCore/cliMain, team, tools, integrations, CI — already present
+
+## Optional: deeper multi-step tool body from publish zip
+
+If you still have `jagx-cli-3.1.0-publish.zip`, you can overwrite with the longest original loops:
 
 ```bash
 cd /storage/emulated/0/Download
 unzip -o jagx-cli-3.1.0-publish.zip -d jagx-full
-cd jagx-cli   # or: git clone https://github.com/JagX-JRILICENSE/jagx-cli.git && cd jagx-cli
+cd jagx-cli   # clone official if needed
 
 cp ../jagx-full/jagx-cli/src/code.js src/
 cp ../jagx-full/jagx-cli/src/group.js src/
-# optional (split modules already on GitHub):
-# cp ../jagx-full/jagx-cli/src/executeTool.js src/   # if present in zip after rebuild
 
 git add src/code.js src/group.js
-git commit -m "Add code agent loop and group runner"
+git commit -m "Optional: full tool-loop bodies from publish zip"
 git push origin main
 
 npm test && npm run bench
 ```
 
-Repo already has: CLI (cli/cliCore/cliMain), executeTool, codeCore, codeSession, team, tools, integrations, tests, CI.
+CI should stay green; group unit tests use `ensureScaffoldFirst` + `DEFAULT_MEMBERS`.
