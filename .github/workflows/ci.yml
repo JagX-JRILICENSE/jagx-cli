@@ -30,3 +30,4 @@ jobs:
           node bin/jagx.js version
           node bin/jagx.js modes | head -3
           node bin/jagx.js features | head -5
+          node bin/jagx.js group "ci smoke" --dry-run --dir /tmp/jagx-ci-smoke || true
