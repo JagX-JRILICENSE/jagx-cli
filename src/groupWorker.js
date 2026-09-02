@@ -1,19 +1,28 @@
 /**
  * Group worker + review loop.
- * Scaffold creates folders for real; other roles announce + return for provider-backed steps.
+ * Scaffold creates folders; specialists write safe starter files when autoWrite.
  */
 import fs from "node:fs";
 import path from "node:path";
-import { say, DIM, GREEN, YELLOW, RESET } from "./groupHelpers.js";
+import { say } from "./groupHelpers.js";
 
 const DEFAULT_DIRS = ["src", "test", "public", "scripts", ".jagx"];
 
 function safeJoin(workdir, rel) {
+  const root = path.resolve(workdir);
   const abs = path.resolve(workdir, rel);
-  if (!abs.startsWith(path.resolve(workdir))) {
+  if (abs !== root && !abs.startsWith(root + path.sep)) {
     throw new Error(`path escape blocked: ${rel}`);
   }
   return abs;
+}
+
+function writeIfMissing(workdir, rel, body) {
+  const abs = safeJoin(workdir, rel);
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  if (fs.existsSync(abs)) return false;
+  fs.writeFileSync(abs, body, "utf8");
+  return true;
 }
 
 function scaffoldFolders(workdir, task) {
@@ -25,7 +34,6 @@ function scaffoldFolders(workdir, task) {
       created.push(d);
     }
   }
-  // Hint from task keywords
   const t = String(task || "").toLowerCase();
   const extra = [];
   if (/api|express|backend|server/.test(t)) extra.push("src/api", "src/routes");
@@ -38,16 +46,63 @@ function scaffoldFolders(workdir, task) {
       created.push(d);
     }
   }
-  const readme = safeJoin(workdir, "README.md");
-  if (!fs.existsSync(readme)) {
-    fs.writeFileSync(
-      readme,
-      `# Project\n\nScaffolded by JagX group agent.\n\nTask: ${String(task).slice(0, 200)}\n`,
-      "utf8",
-    );
+  if (writeIfMissing(
+    workdir,
+    "README.md",
+    `# Project\n\nScaffolded by JagX group agent.\n\nTask: ${String(task).slice(0, 200)}\n`,
+  )) {
     created.push("README.md");
   }
   return created;
+}
+
+function specialistStarter(role, workdir, task) {
+  const t = String(task || "");
+  const wrote = [];
+  if (role === "backend" || role === "files") {
+    if (writeIfMissing(
+      workdir,
+      "src/server.js",
+      `// Starter — JagX ${role}\n// Task: ${t.slice(0, 120)}\nimport http from "node:http";\n\nconst port = process.env.PORT || 3000;\nconst server = http.createServer((req, res) => {\n  if (req.url === "/health") {\n    res.writeHead(200, { "content-type": "application/json" });\n    res.end(JSON.stringify({ ok: true }));\n    return;\n  }\n  res.writeHead(200, { "content-type": "text/plain" });\n  res.end("hello from jagx");\n});\n\nserver.listen(port, () => console.log("listening", port));\n`,
+    )) {
+      wrote.push("src/server.js");
+    }
+    if (writeIfMissing(
+      workdir,
+      "package.json",
+      JSON.stringify(
+        {
+          name: "jagx-project",
+          version: "0.0.1",
+          type: "module",
+          scripts: { start: "node src/server.js" },
+        },
+        null,
+        2,
+      ) + "\n",
+    )) {
+      wrote.push("package.json");
+    }
+  }
+  if (role === "frontend" || role === "design") {
+    if (writeIfMissing(
+      workdir,
+      "public/index.html",
+      `<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1" />\n  <title>JagX project</title>\n  <style>\n    body { font-family: system-ui, sans-serif; margin: 2rem; }\n    h1 { color: #0ea5e9; }\n  </style>\n</head>\n<body>\n  <h1>Hello from JagX</h1>\n  <p>${t.replace(/</g, "<").slice(0, 160)}</p>\n</body>\n</html>\n`,
+    )) {
+      wrote.push("public/index.html");
+    }
+  }
+  if (role === "shell") {
+    if (writeIfMissing(
+      workdir,
+      "scripts/dev.sh",
+      `#!/usr/bin/env bash\nset -euo pipefail\necho "JagX shell starter — task: ${t.slice(0, 80)}"\nnode src/server.js\n`,
+    )) {
+      wrote.push("scripts/dev.sh");
+    }
+  }
+  return wrote;
 }
 
 export async function runWorker({
@@ -72,7 +127,6 @@ export async function runWorker({
     return { role, ok: true, dryRun: true };
   }
 
-  // Scaffold always materializes folders when autoWrite
   if (role === "scaffold" && autoWrite) {
     try {
       const created = scaffoldFolders(workdir, task);
@@ -87,6 +141,22 @@ export async function runWorker({
       }
     } catch (e) {
       say(role, `Scaffold error: ${e.message}`);
+      return { role, ok: false, error: e.message };
+    }
+  } else if (autoWrite && ["backend", "frontend", "files", "design", "shell"].includes(role)) {
+    try {
+      const wrote = specialistStarter(role, workdir, task);
+      say(
+        role,
+        wrote.length
+          ? `Wrote starters: ${wrote.join(", ")}`
+          : "Starters already present — nothing to overwrite.",
+      );
+      if (transcript && wrote.length) {
+        transcript.push(`**${role}:** wrote ${wrote.join(", ")}`);
+      }
+    } catch (e) {
+      say(role, `Write error: ${e.message}`);
       return { role, ok: false, error: e.message };
     }
   } else {
@@ -108,9 +178,6 @@ export async function reviewAndRework({
   if (transcript) transcript.push("**Review:** checking board");
 
   const open = (assignments || []).filter((a) => a.status !== "done");
-  const missingScaffold = !(assignments || []).some((a) => a.role === "scaffold");
-
-  // Light filesystem sanity
   let notes = [];
   try {
     if (!fs.existsSync(path.join(workdir, "src"))) notes.push("no src/ folder");
@@ -119,15 +186,13 @@ export async function reviewAndRework({
     /* ignore */
   }
 
-  if (!open.length && !notes.length && !missingScaffold) {
+  if (!open.length && !notes.length) {
     say("review", "Board looks complete.");
     if (transcript) transcript.push("**Review:** board complete");
     return { ok: true, rework: [], notes };
   }
 
-  if (notes.length) {
-    say("review", `Notes: ${notes.join("; ")}`);
-  }
+  if (notes.length) say("review", `Notes: ${notes.join("; ")}`);
   if (open.length) {
     say("review", `${open.length} item(s) still open — flag for rework (max ${maxRework}).`);
   }
