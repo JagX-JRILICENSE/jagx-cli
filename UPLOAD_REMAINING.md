@@ -1,30 +1,24 @@
-# Upload status (updated)
+# Status: upload complete for v3.1.0 mainline
 
-## Now on main (JagX-JRILICENSE/jagx-cli)
+## On GitHub main now
 
-- `src/groupHelpers.js` — roster, scaffold-first, kickoff, plan
-- `src/groupWorker.js` — runWorker + reviewAndRework
-- `src/group.js` — full group session + interactive chat
-- `src/code.js` — session helpers + runCodeAgent (executeTool-ready)
-- `src/executeTool.js`, cliCore/cliMain, team, tools, integrations, CI — already present
+- Multi-agent **group** (`groupHelpers` + `groupWorker` + `group` session/chat)
+- Scaffold creates real folders; review checks board
+- Coding agent session + executeTool-ready entry
+- CLI, providers, integrations, 100 features, CI (Node 18/20/22)
+- Tests cover dry-run group session + scaffold folders
 
-## Optional: deeper multi-step tool body from publish zip
+## Publish
 
-If you still have `jagx-cli-3.1.0-publish.zip`, you can overwrite with the longest original loops:
+See **PUBLISH.md** — prefer:
 
 ```bash
-cd /storage/emulated/0/Download
-unzip -o jagx-cli-3.1.0-publish.zip -d jagx-full
-cd jagx-cli   # clone official if needed
-
-cp ../jagx-full/jagx-cli/src/code.js src/
-cp ../jagx-full/jagx-cli/src/group.js src/
-
-git add src/code.js src/group.js
-git commit -m "Optional: full tool-loop bodies from publish zip"
-git push origin main
-
+git clone https://github.com/JagX-JRILICENSE/jagx-cli.git
+cd jagx-cli
 npm test && npm run bench
+npm publish --access public
 ```
 
-CI should stay green; group unit tests use `ensureScaffoldFirst` + `DEFAULT_MEMBERS`.
+## Optional deeper loops
+
+Longest original multi-step provider tool loops can still be copied from a local publish zip over `src/code.js` / full group worker if you want maximum model-driven editing. CI already passes without that.
